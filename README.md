@@ -48,6 +48,12 @@ par com medidas 3D reais (comprimento/altura/girth/volume) do mesmo
 animal — sem isso não dá pra treinar o regressor de peso (Fase C), só
 segmentação.
 
+⚠️ **Bug real encontrado em teste no app:** as 346 imagens são todas
+positivas (têm boi). O modelo nunca viu um exemplo de "não tem boi aqui" —
+no app, isso apareceu como o modelo "alucinando" um boi numa sala vazia,
+sem animal nenhum. `data/negatives/` documenta como corrigir isso com
+imagens negativas (outros animais, humanos, ambientes vazios).
+
 ## Pipeline
 
 ```bash
@@ -71,9 +77,11 @@ pip install -r requirements.txt
    ```
 
    Gera `data/segmentation/{train,valid,test}/` e `data/segmentation/data.yaml`
-   a partir de `data/segmentation/raw/`. Esses diretórios gerados **não são
-   versionados** (`.gitignore`) — são reproduzíveis a qualquer momento a
-   partir do dataset bruto + este script (seed fixa = 42).
+   a partir de `data/segmentation/raw/` **e** de `data/negatives/raw/` (se
+   houver imagens negativas — ver `data/negatives/README.md`). Esses
+   diretórios gerados **não são versionados** (`.gitignore`) — são
+   reproduzíveis a qualquer momento a partir do dataset bruto + este script
+   (seed fixa = 42).
 
 3. **Treinar** (fine-tuning do YOLOv8s-seg, 1 classe):
 
