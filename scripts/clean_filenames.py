@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """
-Strips Roboflow's export suffix (`_jpg.rf.<hash>`) from image/label file
-names in data/segmentation/raw/, restoring the original `cow_<id>_angle<n>`
-naming used in data/labels/metadata.csv. Roboflow appends that hash on every
-export, so re-run this after importing a fresh export.
+Strips Roboflow's export suffix (`_<origext>.rf.<hash>`) from image/label
+file names in data/segmentation/raw/ and data/negatives/raw/, restoring the
+original naming (e.g. `cow_<id>_angle<n>` for cattle photos, whatever the
+source used for negatives). Roboflow appends that hash on every export, so
+re-run this after importing a fresh export.
 
 Usage:
     python scripts/clean_filenames.py [--dry-run]
@@ -13,12 +14,18 @@ import re
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
-RAW_DIR = REPO_ROOT / "data" / "segmentation" / "raw"
+SEGMENTATION_RAW_DIR = REPO_ROOT / "data" / "segmentation" / "raw"
+NEGATIVES_RAW_DIR = REPO_ROOT / "data" / "negatives" / "raw"
 
-ROBOFLOW_SUFFIX = re.compile(r"^(cow_\d+_angle\d+)_jpg\.rf\.[0-9a-f]+(\.\w+)$")
+# Matches e.g. "cow_0001_angle1_jpg.rf.<hash>.jpg" or "rgb_185_png.rf.<hash>.jpg"
+# or "2170_adelante_jpg.rf.<hash>.jpg" — anything Roboflow exported, regardless
+# of the original base name or original extension it encodes mid-filename.
+ROBOFLOW_SUFFIX = re.compile(r"^(.+)_(?:jpg|jpeg|png)\.rf\.[0-9a-f]+(\.\w+)$")
 
 
 def planned_renames(directory: Path) -> list[tuple[Path, Path]]:
+    if not directory.exists():
+        return []
     renames = []
     for path in sorted(directory.iterdir()):
         match = ROBOFLOW_SUFFIX.match(path.name)
@@ -36,7 +43,8 @@ def main() -> None:
 
     all_renames = []
     for subdir in ("images", "labels"):
-        all_renames.extend(planned_renames(RAW_DIR / subdir))
+        all_renames.extend(planned_renames(SEGMENTATION_RAW_DIR / subdir))
+    all_renames.extend(planned_renames(NEGATIVES_RAW_DIR))
 
     if not all_renames:
         print("No Roboflow-suffixed file names found — nothing to do.")
