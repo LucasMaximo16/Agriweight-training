@@ -35,6 +35,12 @@ def main() -> None:
     out_dir = Path(args.out_dir)
     out_dir.mkdir(parents=True, exist_ok=True)
     destination = out_dir / Path(exported_path).name
+    # shutil.move() moves *into* an existing directory rather than replacing
+    # it — without this, re-exporting after a previous run left a stale
+    # models/best.mlpackage/ nests the new export inside the old one instead
+    # of overwriting it.
+    if destination.exists():
+        shutil.rmtree(destination)
     shutil.move(exported_path, destination)
     print(f"CoreML model written to {destination}")
     print("Copy this .mlpackage into ios/AgriWeight/ in AgriWeight-app and add it as a build resource.")
