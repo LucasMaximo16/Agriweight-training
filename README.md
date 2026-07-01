@@ -18,44 +18,44 @@ que só a geometria do animal entre na malha medida.
 ## Dataset
 
 `data/segmentation/raw/` contém o export do Roboflow (formato YOLOv8,
-polígonos de segmentação): 346 imagens, classe única `boi`, cobrindo **72
-animais distintos** (até 5 ângulos por animal, nomeados
+polígonos de segmentação): **588 imagens**, classe única `boi`, cobrindo
+**189 animais distintos** (até 5 fotos por animal, nomeados
 `cow_<id>_angle<n>.jpg` — nomes já limpos do sufixo de hash que o Roboflow
-adiciona no export; veja `scripts/clean_filenames.py`).
+adiciona no export; veja `scripts/clean_filenames.py`). Os 117 animais mais
+recentes (`cow_1001`...`cow_1150`) vieram de um segundo export do Roboflow
+que usava outra convenção de nome (numérico, sem o padrão `cow_<id>`) —
+foram renumerados com offset +1000 para não colidir com os 72 originais.
 
-`data/labels/` contém os dados de referência por animal, ainda não ligados
-ao dataset de segmentação:
+`data/labels/` contém os dados de referência dos **72 animais originais**,
+ainda não ligados ao dataset de segmentação (e não cobrem os 117 animais
+novos):
 
-- `weights.csv` — `cow_id,weight_kg`, peso real de balança de 72 animais.
+- `weights.csv` — `cow_id,weight_kg`, peso real de balança.
 - `metadata.csv` — `image_name,cow_id,angle,collection_date,time_of_day,
-  weather,camera_mode,device,collector_name,gps_coordinates,location` para
-  360 fotos planejadas.
+  weather,camera_mode,device,collector_name,gps_coordinates,location`.
 
-⚠️ **Inconsistência encontrada:** `metadata.csv` lista 360 fotos, mas só 346
-existem em `data/segmentation/raw/images/` (14 fotos documentadas nunca
-foram exportadas/anotadas — todas as 346 que existem batem com uma linha do
-metadata, então não é erro de nomenclatura, é ausência mesmo). Vale
-confirmar se essas 14 foram perdidas na coleta ou só não entraram neste
-export do Roboflow.
+⚠️ **Inconsistência encontrada:** `metadata.csv` lista 360 fotos dos 72
+animais originais, mas só 346 existem em `data/segmentation/raw/images/`
+(14 fotos documentadas nunca foram exportadas/anotadas). Vale confirmar se
+essas 14 foram perdidas na coleta ou só não entraram neste export do
+Roboflow.
 
-⚠️ **Limitação honesta:** 72 animais é um dataset pequeno para treinar
-segmentação do zero. Este v1 parte dos pesos COCO do YOLOv8s-seg (transfer
-learning) para compensar, mas a precisão de borda ("recorte cirúrgico" em
-patas/cauda/orelha) e a generalização para outras condições de luz/fundo só
-devem melhorar com mais imagens reais. Trate os números deste v1 como linha
-de base, não como resultado final. Além disso, `weights.csv` ainda não tem
-par com medidas 3D reais (comprimento/altura/girth/volume) do mesmo
-animal — sem isso não dá pra treinar o regressor de peso (Fase C), só
-segmentação.
+⚠️ **Limitação honesta:** apesar de já termos 189 animais, ainda é um
+dataset pequeno pra segmentação, e a precisão de borda ("recorte
+cirúrgico" em patas/cauda/orelha) e a generalização pra outras condições de
+luz/fundo só devem melhorar com mais imagens reais. Além disso,
+`weights.csv` só cobre os 72 originais e ainda não tem par com medidas 3D
+reais do mesmo animal — sem isso não dá pra treinar o regressor de peso
+(Fase C), só segmentação.
 
-⚠️ **Bug real encontrado em teste no app:** as 346 imagens são todas
-positivas (têm boi). O modelo nunca viu um exemplo de "não tem boi aqui" —
-no app, isso apareceu como o modelo "alucinando" um boi numa sala vazia,
-sem animal nenhum. `data/negatives/raw/` já tem **159 imagens negativas**
-(80 de ambiente/sala + 79 de casa/quintal, sem boi) — ainda faltam os
-negativos difíceis pedidos (cachorro, cavalo, humano) que forçam o modelo a
-aprender o que **diferencia** um boi de outro animal parecido, não só "tem
-algo aqui ou não". Ver `data/negatives/README.md`.
+⚠️ **Bug real encontrado em teste no app, já corrigido com dados novos:**
+o dataset original era todo positivo (só fotos com boi) — o modelo nunca
+viu "não tem boi aqui" e alucinava detecções numa sala vazia.
+`data/negatives/raw/` agora tem **327 imagens negativas**: 159 de
+ambiente/casa (sem boi) + 168 de negativos difíceis (27 cavalo, 141
+cachorro) — esses últimos forçam o modelo a aprender o que **diferencia**
+um boi de outro animal parecido, não só "tem algo aqui ou não". Ainda
+faltam fotos de humanos. Ver `data/negatives/README.md`.
 
 ## Pipeline
 
@@ -112,7 +112,8 @@ pip install -r requirements.txt
 - A **conversão** para Core ML (`coremltools`) roda em qualquer SO, inclusive
   Linux — não precisa de Mac.
 - O **treino** roda em qualquer máquina com PyTorch, mas GPU acelera muito;
-  em CPU, 100 épocas em 346 imagens é viável, mas lento.
+  em CPU, 100 épocas no dataset atual (~900 imagens com negativos) é
+  viável, mas lento — mais ainda do que antes, dado o dataset maior.
 - Testar o modelo exportado dentro do app exige o fluxo normal do
   `ios/README.md` do `AgriWeight-app` (device físico ou Simulador para
   correção, sem depender de LiDAR nesta etapa).
