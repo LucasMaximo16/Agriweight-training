@@ -46,7 +46,13 @@ def main() -> None:
         project=args.project,
         name=args.name,
     )
-    model.val(data=str(DATA_YAML), split="test", device=args.device)
+    # workers=0 avoids a Windows-specific crash: multiprocessing dataloader
+    # workers each reload the CUDA runtime from scratch, and on a system with
+    # a small page file that can fail with
+    # "OSError: [WinError 1455] ... cufft64_11.dll" — single-process loading
+    # sidesteps it entirely (this final test-set check is a small dataset,
+    # so there's no real speed cost to not parallelizing it).
+    model.val(data=str(DATA_YAML), split="test", device=args.device, workers=0)
 
 
 if __name__ == "__main__":
