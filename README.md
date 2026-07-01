@@ -20,14 +20,33 @@ que só a geometria do animal entre na malha medida.
 `data/segmentation/raw/` contém o export do Roboflow (formato YOLOv8,
 polígonos de segmentação): 346 imagens, classe única `boi`, cobrindo **72
 animais distintos** (até 5 ângulos por animal, nomeados
-`cow_<id>_angle<n>.jpg`).
+`cow_<id>_angle<n>.jpg` — nomes já limpos do sufixo de hash que o Roboflow
+adiciona no export; veja `scripts/clean_filenames.py`).
+
+`data/labels/` contém os dados de referência por animal, ainda não ligados
+ao dataset de segmentação:
+
+- `weights.csv` — `cow_id,weight_kg`, peso real de balança de 72 animais.
+- `metadata.csv` — `image_name,cow_id,angle,collection_date,time_of_day,
+  weather,camera_mode,device,collector_name,gps_coordinates,location` para
+  360 fotos planejadas.
+
+⚠️ **Inconsistência encontrada:** `metadata.csv` lista 360 fotos, mas só 346
+existem em `data/segmentation/raw/images/` (14 fotos documentadas nunca
+foram exportadas/anotadas — todas as 346 que existem batem com uma linha do
+metadata, então não é erro de nomenclatura, é ausência mesmo). Vale
+confirmar se essas 14 foram perdidas na coleta ou só não entraram neste
+export do Roboflow.
 
 ⚠️ **Limitação honesta:** 72 animais é um dataset pequeno para treinar
 segmentação do zero. Este v1 parte dos pesos COCO do YOLOv8s-seg (transfer
 learning) para compensar, mas a precisão de borda ("recorte cirúrgico" em
 patas/cauda/orelha) e a generalização para outras condições de luz/fundo só
 devem melhorar com mais imagens reais. Trate os números deste v1 como linha
-de base, não como resultado final.
+de base, não como resultado final. Além disso, `weights.csv` ainda não tem
+par com medidas 3D reais (comprimento/altura/girth/volume) do mesmo
+animal — sem isso não dá pra treinar o regressor de peso (Fase C), só
+segmentação.
 
 ## Pipeline
 
@@ -35,7 +54,16 @@ de base, não como resultado final.
 pip install -r requirements.txt
 ```
 
-1. **Preparar o split** (por animal, não por imagem — evita vazamento entre
+1. **(Só ao importar um novo export do Roboflow) Limpar os nomes de
+   arquivo** — o Roboflow sufixa cada arquivo com `_jpg.rf.<hash>`, deixando
+   os nomes gigantes e fora do padrão usado em `data/labels/metadata.csv`:
+
+   ```bash
+   python scripts/clean_filenames.py --dry-run   # confere antes
+   python scripts/clean_filenames.py
+   ```
+
+2. **Preparar o split** (por animal, não por imagem — evita vazamento entre
    ângulos do mesmo boi em treino/validação):
 
    ```bash
@@ -47,7 +75,7 @@ pip install -r requirements.txt
    versionados** (`.gitignore`) — são reproduzíveis a qualquer momento a
    partir do dataset bruto + este script (seed fixa = 42).
 
-2. **Treinar** (fine-tuning do YOLOv8s-seg, 1 classe):
+3. **Treinar** (fine-tuning do YOLOv8s-seg, 1 classe):
 
    ```bash
    python scripts/train_segmentation.py --epochs 100 --imgsz 640
@@ -56,7 +84,7 @@ pip install -r requirements.txt
    Salva em `runs/cattle_seg/weights/best.pt` (não versionado — binário
    grande e reproduzível a partir do dataset + script).
 
-3. **Exportar para Core ML**:
+4. **Exportar para Core ML**:
 
    ```bash
    python scripts/export_coreml.py --weights runs/cattle_seg/weights/best.pt
