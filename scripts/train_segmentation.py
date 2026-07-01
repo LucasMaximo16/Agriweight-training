@@ -6,7 +6,10 @@ learning) but training a single class ('boi') so the model isolates only the
 animal — not the 79 other COCO classes.
 
 Usage:
-    python scripts/train_segmentation.py [--epochs 100] [--imgsz 640] [--batch 16]
+    python scripts/train_segmentation.py [--epochs 100] [--imgsz 640] [--batch 16] [--device mps]
+
+On a Mac with Apple Silicon, pass --device mps to use the GPU (much faster
+than CPU); leave --device unset elsewhere to let Ultralytics auto-pick.
 
 Requires: pip install -r requirements.txt
 """
@@ -25,6 +28,7 @@ def main() -> None:
     parser.add_argument("--imgsz", type=int, default=640)
     parser.add_argument("--batch", type=int, default=16)
     parser.add_argument("--base-weights", default="yolov8s-seg.pt")
+    parser.add_argument("--device", default=None, help="e.g. mps (Apple Silicon), 0 (CUDA GPU), cpu")
     parser.add_argument("--project", default=str(REPO_ROOT / "runs"))
     parser.add_argument("--name", default="cattle_seg")
     args = parser.parse_args()
@@ -38,10 +42,11 @@ def main() -> None:
         epochs=args.epochs,
         imgsz=args.imgsz,
         batch=args.batch,
+        device=args.device,
         project=args.project,
         name=args.name,
     )
-    model.val(data=str(DATA_YAML), split="test")
+    model.val(data=str(DATA_YAML), split="test", device=args.device)
 
 
 if __name__ == "__main__":
