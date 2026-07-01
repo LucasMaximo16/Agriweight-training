@@ -51,8 +51,11 @@ segmentação.
 ⚠️ **Bug real encontrado em teste no app:** as 346 imagens são todas
 positivas (têm boi). O modelo nunca viu um exemplo de "não tem boi aqui" —
 no app, isso apareceu como o modelo "alucinando" um boi numa sala vazia,
-sem animal nenhum. `data/negatives/` documenta como corrigir isso com
-imagens negativas (outros animais, humanos, ambientes vazios).
+sem animal nenhum. `data/negatives/raw/` já tem **159 imagens negativas**
+(80 de ambiente/sala + 79 de casa/quintal, sem boi) — ainda faltam os
+negativos difíceis pedidos (cachorro, cavalo, humano) que forçam o modelo a
+aprender o que **diferencia** um boi de outro animal parecido, não só "tem
+algo aqui ou não". Ver `data/negatives/README.md`.
 
 ## Pipeline
 
