@@ -26,13 +26,25 @@ ROBOFLOW_SUFFIX = re.compile(r"^(.+)_(?:jpg|jpeg|png)\.rf\.[0-9a-f]+(\.\w+)$")
 def planned_renames(directory: Path) -> list[tuple[Path, Path]]:
     if not directory.exists():
         return []
-    renames = []
+
+    # Group by (base, ext) first: Roboflow sometimes exports the same source
+    # image multiple times (its own augmentation pass), each getting a
+    # different hash but the same base name. Stripping the hash naively would
+    # collide those into one name — number them instead of losing files.
+    groups: dict[tuple[str, str], list[Path]] = {}
     for path in sorted(directory.iterdir()):
         match = ROBOFLOW_SUFFIX.match(path.name)
         if not match:
             continue
-        new_name = f"{match.group(1)}{match.group(2)}"
-        renames.append((path, path.with_name(new_name)))
+        groups.setdefault((match.group(1), match.group(2)), []).append(path)
+
+    renames = []
+    for (base, ext), paths in groups.items():
+        if len(paths) == 1:
+            renames.append((paths[0], paths[0].with_name(f"{base}{ext}")))
+        else:
+            for i, path in enumerate(paths, start=1):
+                renames.append((path, path.with_name(f"{base}_{i}{ext}")))
     return renames
 
 
