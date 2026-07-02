@@ -19,6 +19,13 @@ Prioridade (do mais útil pro menos útil):
    cavalo, cabra, porco, outros bovinos de raça bem diferente do dataset
    atual. Isso força o modelo a aprender o que **diferencia** um boi de
    outro animal parecido, não só "tem um bicho aqui ou não".
+
+   ⚠️ **Achado real (v2 do modelo):** com só 27 fotos de cavalo, todas em
+   pose parada/estática, o modelo confundiu um **cavalo correndo** (crina ao
+   vento, pose dinâmica) com boi, com 92% de confiança. Pose parada não
+   generaliza pra pose em movimento — ao coletar mais negativos de cavalo,
+   varie a pose (parado, correndo, deitado, ângulos diferentes), não só o
+   número de fotos.
 2. **Humanos** — sozinhos ou perto de animais (o cenário real de uso: o
    usuário segurando o celular perto do boi, possivelmente com outra pessoa
    no quadro).
